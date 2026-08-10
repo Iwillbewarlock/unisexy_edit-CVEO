@@ -37,15 +37,17 @@ void Unisexy::DoSexyStuff()
 		RE::BGSHeadPart::HeadPartType::kHair,
 		RE::BGSHeadPart::HeadPartType::kFacialHair,
 		RE::BGSHeadPart::HeadPartType::kScar,
-		RE::BGSHeadPart::HeadPartType::kEyebrows,
 		RE::BGSHeadPart::HeadPartType::kEyes,
+		RE::BGSHeadPart::HeadPartType::kEyebrows,
 	};
 
 	// Build set of existing EditorIDs to prevent duplicates
 	std::set<std::string> existingEditorIDs;
+	std::unordered_map<std::string, RE::BGSHeadPart*> editorIDToForm;
 	for (const auto& existingHeadPart : dataHandler.GetFormArray<RE::BGSHeadPart>()) {
 		if (existingHeadPart && existingHeadPart->GetFormEditorID()) {
 			existingEditorIDs.insert(existingHeadPart->GetFormEditorID());
+			editorIDToForm[existingHeadPart->GetFormEditorID()] = existingHeadPart;
 		}
 	}
 
@@ -60,10 +62,17 @@ void Unisexy::DoSexyStuff()
 		processedCount++;
 
 		const auto headPartType = static_cast<RE::BGSHeadPart::HeadPartType>(headPart->type.get());
+		const auto rawType = static_cast<std::uint32_t>(headPart->type.get());
+
+		// Map CVEO slider types (171..193) to kEyes category for settings lookups
+		auto targetCategory = headPartType;
+		if (rawType >= 171 && rawType <= 193) {
+			targetCategory = RE::BGSHeadPart::HeadPartType::kEyes;
+		}
 
 		// Skip non-playable head parts
 		if (!headPart->flags.all(RE::BGSHeadPart::Flag::kPlayable)) {
-			if (verboseLogging && reportableTypes.contains(headPartType)) {
+			if (verboseLogging && reportableTypes.contains(targetCategory)) {
 				logger::info("Skipping non-playable head part: {} [{:08X}]",
 					headPart->GetFormEditorID(), headPart->formID);
 			}
@@ -79,41 +88,32 @@ void Unisexy::DoSexyStuff()
 		using Flag = RE::BGSHeadPart::Flag;
 		const bool isMale = headPart->flags.all(Flag::kMale);
 		const bool isFemale = headPart->flags.all(Flag::kFemale);
-		const bool isGenderless = !isMale && !isFemale;
+		const bool isUnisex = (isMale && isFemale) || (!isMale && !isFemale);
 
-		// Handle genderless/unisex head parts
-		if (isGenderless) {
-			if (settings.IsShowOnlyUnisexy()) {
-				headPart->flags.reset(Flag::kPlayable);
-				disabledOriginalCount++;
-				if (verboseLogging) {
-					logger::info("Disabled genderless head part: {} [{:08X}] (Type: {})",
-						headPart->GetFormEditorID(), headPart->formID,
-						Settings::GetHeadPartTypeName(headPartType));
-				}
-			}
+		// Handle unisex/genderless head parts (already playable by both or neutral, do not disable)
+		if (isUnisex) {
 			continue;
 		}
 
-		// Determine if this head part should be processed and target gender
+		// Determine if this single-gender head part should be processed and target gender
 		bool shouldProcess = false;
 		bool toFemale = false;
 
-		if (isMale && !isFemale && settings.IsFemaleEnabled(headPartType)) {
+		if (isMale && !isFemale && settings.IsFemaleEnabled(targetCategory)) {
 			// Convert male part to female
 			shouldProcess = true;
 			toFemale = true;
-		} else if (!isMale && isFemale && settings.IsMaleEnabled(headPartType)) {
+		} else if (!isMale && isFemale && settings.IsMaleEnabled(targetCategory)) {
 			// Convert female part to male
 			shouldProcess = true;
 			toFemale = false;
 		} else {
 			// Track skipped parts for summary reporting
-			if (reportableTypes.contains(headPartType)) {
-				if (isMale && !isFemale && !settings.IsFemaleEnabled(headPartType)) {
-					skippedByType[headPartType].second++;  // Female conversion disabled
-				} else if (!isMale && isFemale && !settings.IsMaleEnabled(headPartType)) {
-					skippedByType[headPartType].first++;  // Male conversion disabled
+			if (reportableTypes.contains(targetCategory)) {
+				if (isMale && !isFemale && !settings.IsFemaleEnabled(targetCategory)) {
+					skippedByType[targetCategory].second++;  // Female conversion disabled
+				} else if (!isMale && isFemale && !settings.IsMaleEnabled(targetCategory)) {
+					skippedByType[targetCategory].first++;  // Male conversion disabled
 				}
 			}
 			continue;
@@ -136,7 +136,7 @@ void Unisexy::DoSexyStuff()
 
 		// Create the new gender-flipped head part
 		auto* newHeadPart = HeadPartUtils::CreateUnisexyHeadPart(
-			headFactory, headPart, newEditorID, toFemale, settings);
+			headFactory, headPart, newEditorID, toFemale);
 		if (!newHeadPart) {
 			otherWarningCount++;  // Increment for memory allocation failure
 			continue;
@@ -169,13 +169,13 @@ void Unisexy::DoSexyStuff()
 		}
 
 		// Set the file for the new head part
-		HeadPartUtils::SetFormFile(newHeadPart, const_cast<RE::TESFile*>(targetFile));
+		newHeadPart->SetFile(const_cast<RE::TESFile*>(targetFile));
 
 		// Process extra parts
 		if (reportableTypes.contains(headPartType)) {
 			if (!HeadPartUtils::ProcessExtraParts(
 					newHeadPart, headPart, formIDManager, targetFile,
-					existingEditorIDs, settings, createdCount, formIDConflicts)) {
+					existingEditorIDs, editorIDToForm, settings, createdCount, formIDConflicts)) {
 				logger::error("Failed to process extra parts for {}", newEditorID);
 				otherWarningCount++;  // Increment for extra parts processing failure
 				delete newHeadPart;
@@ -186,23 +186,24 @@ void Unisexy::DoSexyStuff()
 		// Register the new head part with the data handler
 		dataHandler.AddFormToDataHandler(newHeadPart);
 		existingEditorIDs.insert(newEditorID);
+		editorIDToForm[newEditorID] = newHeadPart;
 		createdCount++;
 
 		if (verboseLogging) {
 			logger::info("Created head part: {} [{:08X}] (Type: {}) from source [{:08X}]",
 				newEditorID, newHeadPart->formID,
-				Settings::GetHeadPartTypeName(headPartType),
+				Settings::GetHeadPartTypeName(targetCategory),
 				headPart->formID);
 		}
 
-		// Disable original head part if configured to show only Unisexy versions
-		if (settings.IsShowOnlyUnisexy()) {
+		// Disable original single-gender head part if configured to show only Unisexy versions
+		if (settings.IsShowOnlyUnisexy(targetCategory)) {
 			headPart->flags.reset(Flag::kPlayable);
 			disabledOriginalCount++;
 			if (verboseLogging) {
-				logger::info("Disabled original head part: {} [{:08X}] (Type: {})",
+				logger::info("Disabled original single-gender head part: {} [{:08X}] (Type: {})",
 					headPart->GetFormEditorID(), headPart->formID,
-					Settings::GetHeadPartTypeName(headPartType));
+					Settings::GetHeadPartTypeName(targetCategory));
 			}
 		}
 	}

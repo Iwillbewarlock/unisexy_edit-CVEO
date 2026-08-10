@@ -1,12 +1,36 @@
 #include "HeadPartUtils.h"
 #include "PCH.h"
+#include <algorithm>
+#include <cctype>
+#include <string_view>
 
 namespace HeadPartUtils
 {
+	bool IsCVEOFile(const RE::TESFile* a_file)
+	{
+		if (!a_file || !a_file->fileName) {
+			return false;
+		}
+
+		std::string fileName = a_file->fileName;
+		std::transform(fileName.begin(), fileName.end(), fileName.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+		return (fileName.find("completevanillaeyeoverhaul") != std::string::npos) ||
+		       (fileName.find("cveo") != std::string::npos);
+	}
+
+	bool IsCVEOSliderType(std::uint32_t a_type)
+	{
+		return (a_type >= 171 && a_type <= 193) || a_type == 2;
+	}
+
 	std::string GenerateUnisexyEditorID(const RE::BGSHeadPart* a_headPart)
 	{
-		// Source head part should never be null from loaded game data
-		assert(a_headPart);
+		if (!a_headPart) {
+			logger::error("GenerateUnisexyEditorID called with null head part");
+			return "";
+		}
 
 		const char* editorID = a_headPart->GetFormEditorID();
 		// Some forms legitimately have no EditorID - this check is still needed
@@ -29,11 +53,16 @@ namespace HeadPartUtils
 		RE::IFormFactory* a_factory,
 		const RE::BGSHeadPart* a_sourcePart,
 		const std::string& a_newEditorID,
-		bool a_toFemale,
-		[[maybe_unused]] const Settings& a_settings)
+		bool a_toFemale)
 	{
-		// Factory and source should never be null from validated game data
-		assert(a_factory && a_sourcePart);
+		if (!a_factory) {
+			logger::error("CreateUnisexyHeadPart called with null factory");
+			return nullptr;
+		}
+		if (!a_sourcePart) {
+			logger::error("CreateUnisexyHeadPart called with null source part");
+			return nullptr;
+		}
 
 		// Create new head part - memory allocation can still fail
 		auto* newHeadPart = static_cast<RE::BGSHeadPart*>(a_factory->Create());
@@ -80,12 +109,23 @@ namespace HeadPartUtils
 		FormIDManager& a_formIDManager,
 		const RE::TESFile* a_targetFile,
 		std::set<std::string>& a_existingEditorIDs,
+		std::unordered_map<std::string, RE::BGSHeadPart*>& a_editorIDToForm,
 		const Settings& a_settings,
 		int& a_createdCount,
 		std::vector<std::tuple<std::string, std::uint32_t, std::uint32_t>>& a_conflictDetails)
 	{
-		// All parameters should be valid from caller
-		assert(a_newHeadPart && a_sourcePart && a_targetFile);
+		if (!a_newHeadPart) {
+			logger::error("ProcessExtraParts called with null new head part");
+			return false;
+		}
+		if (!a_sourcePart) {
+			logger::error("ProcessExtraParts called with null source part");
+			return false;
+		}
+		if (!a_targetFile) {
+			logger::error("ProcessExtraParts called with null target file");
+			return false;
+		}
 
 		// Early exit if no extra parts to process
 		const auto& extraParts = a_sourcePart->extraParts;
@@ -98,9 +138,11 @@ namespace HeadPartUtils
 			return true;
 		}
 
-		// Get factory for creating extra parts
 		const auto headFactory = RE::IFormFactory::GetConcreteFormFactoryByType<RE::BGSHeadPart>();
-		assert(headFactory);
+		if (!headFactory) {
+			logger::error("ProcessExtraParts could not get BGSHeadPart factory");
+			return false;
+		}
 
 		// Determine target gender from new head part's flags (cache the result)
 		const bool targetIsFemale = a_newHeadPart->flags.all(RE::BGSHeadPart::Flag::kFemale);
@@ -174,27 +216,18 @@ namespace HeadPartUtils
 			auto existingIt = a_existingEditorIDs.find(newEditorID);
 			if (existingIt != a_existingEditorIDs.end()) {
 				// Search for existing version to reuse
-				bool foundExisting = false;
-				for (const auto& existingHeadPart : dataHandler.GetFormArray<RE::BGSHeadPart>()) {
-					if (existingHeadPart && existingHeadPart->GetFormEditorID()) {
-						const char* existingID = existingHeadPart->GetFormEditorID();
-						if (existingID && newEditorID == existingID) {
-							newExtraParts.push_back(existingHeadPart);
-							foundExisting = true;
-							if (verboseLogging) {
-								logger::info("Reusing existing extra part: {} [{:08X}] (Type: {}) for head part {} [{:08X}]",
-									newEditorID,
-									existingHeadPart->formID,
-									Settings::GetHeadPartTypeName(static_cast<RE::BGSHeadPart::HeadPartType>(existingHeadPart->type.get())),
-									a_newHeadPart->GetFormEditorID() ? a_newHeadPart->GetFormEditorID() : "NoEditorID",
-									a_newHeadPart->formID);
-							}
-							break;
-						}
+				auto mapIt = a_editorIDToForm.find(newEditorID);
+				if (mapIt != a_editorIDToForm.end()) {
+					newExtraParts.push_back(mapIt->second);
+					if (verboseLogging) {
+						logger::info("Reusing existing extra part: {} [{:08X}] (Type: {}) for head part {} [{:08X}]",
+							newEditorID,
+							mapIt->second->formID,
+							Settings::GetHeadPartTypeName(static_cast<RE::BGSHeadPart::HeadPartType>(mapIt->second->type.get())),
+							a_newHeadPart->GetFormEditorID() ? a_newHeadPart->GetFormEditorID() : "NoEditorID",
+							a_newHeadPart->formID);
 					}
-				}
-
-				if (!foundExisting) {
+				} else {
 					// Fall back to original if we can't find the existing version
 					newExtraParts.push_back(const_cast<RE::BGSHeadPart*>(extraPart));
 					if (verboseLogging) {
@@ -209,7 +242,7 @@ namespace HeadPartUtils
 
 			// Create new gender-flipped extra part
 			auto* newExtraPart = CreateUnisexyHeadPart(
-				headFactory, extraPart, newEditorID, targetIsFemale, a_settings);
+				headFactory, extraPart, newEditorID, targetIsFemale);
 
 			if (!newExtraPart) {
 				// Fall back to original extra part if creation fails
@@ -222,6 +255,9 @@ namespace HeadPartUtils
 				a_conflictDetails.emplace_back(newEditorID, 0, 0);  // Record failure
 				continue;
 			}
+
+			// Ensure sub-mesh extra parts remain playable for engine rendering
+			newExtraPart->flags.set(RE::BGSHeadPart::Flag::kPlayable);
 
 			// Assign FormID and register with data handler
 			std::uint32_t conflictFormID = 0;
@@ -243,9 +279,10 @@ namespace HeadPartUtils
 			}
 
 			// Set the file for the new extra part
-			SetFormFile(newExtraPart, const_cast<RE::TESFile*>(a_targetFile));
+			newExtraPart->SetFile(const_cast<RE::TESFile*>(a_targetFile));
 			dataHandler.AddFormToDataHandler(newExtraPart);
 			a_existingEditorIDs.insert(newEditorID);
+			a_editorIDToForm[newEditorID] = newExtraPart;
 			newExtraParts.push_back(newExtraPart);
 			a_createdCount++;
 

@@ -16,6 +16,7 @@ void OnInit(SKSE::MessagingInterface::Message* a_msg)
 	}
 }
 
+#ifdef SKYRIM_AE
 extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	SKSE::PluginVersionData v;
 	v.PluginVersion(Version::MAJOR);
@@ -26,7 +27,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST });
 	return v;
 }();
-
+#else
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
 	a_info->infoVersion = SKSE::PluginInfo::kVersion;
@@ -46,6 +47,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 
 	return true;
 }
+#endif
 
 void InitializeLog()
 {

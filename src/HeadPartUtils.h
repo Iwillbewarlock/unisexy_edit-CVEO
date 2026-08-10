@@ -7,28 +7,15 @@
 
 namespace HeadPartUtils
 {
+	// Check if a TESFile is CVEO plugin
+	bool IsCVEOFile(const RE::TESFile* a_file);
+
+	// Check if a HeadPart type matches CVEO slider types (171..193 or 2)
+	bool IsCVEOSliderType(std::uint32_t a_type);
+
 	// Generate a Unisexy EditorID for the given head part
 	// Returns empty string if the head part has no EditorID
 	std::string GenerateUnisexyEditorID(const RE::BGSHeadPart* a_headPart);
-
-	// Workaround for SetFile which was removed in CommonLibSSE-NG
-	inline void SetFormFile(RE::TESForm* a_form, RE::TESFile* a_file)
-	{
-		if (!a_form || !a_file) return;
-		if (!a_form->sourceFiles.array) {
-			a_form->sourceFiles.array = RE::malloc<RE::TESFileArray>(sizeof(RE::TESFileArray));
-			if (a_form->sourceFiles.array) {
-				auto data = RE::malloc<RE::TESFile*>(sizeof(RE::TESFile*));
-				if (data) {
-					data[0] = a_file;
-					struct ArrayLayout { RE::TESFile** data; std::uint32_t size; };
-					auto layout = reinterpret_cast<ArrayLayout*>(a_form->sourceFiles.array);
-					layout->data = data;
-					layout->size = 1;
-				}
-			}
-		}
-	}
 
 	// Create a gender-flipped copy of the source head part
 	// Returns nullptr only if memory allocation fails
@@ -36,8 +23,7 @@ namespace HeadPartUtils
 		RE::IFormFactory* a_factory,
 		const RE::BGSHeadPart* a_sourcePart,
 		const std::string& a_newEditorID,
-		bool a_toFemale,
-		const Settings& a_settings);
+		bool a_toFemale);
 
 	// Process and create gender-flipped versions of extra parts
 	// Updates a_createdCount with number of extra parts created
@@ -48,6 +34,7 @@ namespace HeadPartUtils
 		FormIDManager& a_formIDManager,
 		const RE::TESFile* a_targetFile,
 		std::set<std::string>& a_existingEditorIDs,
+		std::unordered_map<std::string, RE::BGSHeadPart*>& a_editorIDToForm,
 		const Settings& a_settings,
 		int& a_createdCount,
 		std::vector<std::tuple<std::string, std::uint32_t, std::uint32_t>>& a_conflictDetails);

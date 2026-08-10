@@ -21,6 +21,9 @@ public:
 	// Check if only Unisexy parts should be shown (vanilla parts hidden)
 	bool IsShowOnlyUnisexy() const;
 
+	// Check if only Unisexy parts should be shown for a specific head part type
+	bool IsShowOnlyUnisexy(RE::BGSHeadPart::HeadPartType a_type) const;
+
 	// Get human-readable name for head part type
 	static std::string GetHeadPartTypeName(RE::BGSHeadPart::HeadPartType type);
 
@@ -36,6 +39,7 @@ private:
 	void SaveConfigFile(CSimpleIniA& ini, const std::string& iniPath);
 
 	std::map<RE::BGSHeadPart::HeadPartType, GenderSettings> _enabledTypes;
+	std::map<RE::BGSHeadPart::HeadPartType, bool> _showOnlyUnisexyTypes;
 	bool _verboseLogging = false;
 	bool _showOnlyUnisexy = false;
 };
