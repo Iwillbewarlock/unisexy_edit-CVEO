@@ -7,3 +7,9 @@ build*/
 vcpkg_installed/
 out/
 bin/
+
+# Build / configure logs (not part of the source tree)
+build_log*.txt
+cmake_log.txt
+cmake_output.txt
+large_files.txt
