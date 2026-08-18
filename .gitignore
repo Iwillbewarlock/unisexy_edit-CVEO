@@ -1,5 +1,6 @@
 build*/
 /.vs
+CMakeUserPresets.json
 *.zip
 *.lib
 *.dll

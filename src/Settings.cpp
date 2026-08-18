@@ -17,14 +17,24 @@ void Settings::Load()
 	bool needsUpdate = false;
 	bool hasOldKeys = false;
 
-	// Set default values - hair enabled by default, others disabled
+	// Set default values - every category converts in both directions by default
+	// (must stay in sync with the shipped Data/SKSE/Plugins/Unisexy.ini template)
 	_enabledTypes[RE::BGSHeadPart::HeadPartType::kHair] = { true, true };
-	_enabledTypes[RE::BGSHeadPart::HeadPartType::kScar] = { false, false };
-	_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyes] = { false, false };
-	_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyebrows] = { false, false };
-	_enabledTypes[RE::BGSHeadPart::HeadPartType::kFacialHair] = { false, false };
+	_enabledTypes[RE::BGSHeadPart::HeadPartType::kScar] = { true, true };
+	_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyes] = { true, true };
+	_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyebrows] = { true, true };
+	_enabledTypes[RE::BGSHeadPart::HeadPartType::kFacialHair] = { true, true };
 	_verboseLogging = false;
 	_showOnlyUnisexy = false;
+
+	// Per-category "show only Unisexy" defaults - everything except hair.
+	// Hair is left off because vanilla and modded hair lists are what players browse most,
+	// and hiding those originals is a much bigger visual change than for the other categories.
+	_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kHair] = false;
+	_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kEyes] = true;
+	_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kScar] = true;
+	_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kEyebrows] = true;
+	_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kFacialHair] = true;
 
 	if (ini.LoadFile(iniPath.c_str()) >= SI_OK) {
 		if constexpr (INI_DEBUG_LOGGING) {
@@ -139,7 +149,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "ScarsMale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kScar].maleEnabled =
-				ini.GetBoolValue(section, "ScarsMale", false, &foundValue);
+				ini.GetBoolValue(section, "ScarsMale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded ScarsMale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kScar].maleEnabled);
@@ -149,7 +159,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "ScarsFemale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kScar].femaleEnabled =
-				ini.GetBoolValue(section, "ScarsFemale", false, &foundValue);
+				ini.GetBoolValue(section, "ScarsFemale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded ScarsFemale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kScar].femaleEnabled);
@@ -159,7 +169,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "EyesMale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyes].maleEnabled =
-				ini.GetBoolValue(section, "EyesMale", false, &foundValue);
+				ini.GetBoolValue(section, "EyesMale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded EyesMale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kEyes].maleEnabled);
@@ -169,7 +179,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "EyesFemale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyes].femaleEnabled =
-				ini.GetBoolValue(section, "EyesFemale", false, &foundValue);
+				ini.GetBoolValue(section, "EyesFemale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded EyesFemale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kEyes].femaleEnabled);
@@ -179,7 +189,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "BrowsMale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyebrows].maleEnabled =
-				ini.GetBoolValue(section, "BrowsMale", false, &foundValue);
+				ini.GetBoolValue(section, "BrowsMale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded BrowsMale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kEyebrows].maleEnabled);
@@ -189,7 +199,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "BrowsFemale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kEyebrows].femaleEnabled =
-				ini.GetBoolValue(section, "BrowsFemale", false, &foundValue);
+				ini.GetBoolValue(section, "BrowsFemale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded BrowsFemale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kEyebrows].femaleEnabled);
@@ -199,7 +209,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "FacialHairMale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kFacialHair].maleEnabled =
-				ini.GetBoolValue(section, "FacialHairMale", false, &foundValue);
+				ini.GetBoolValue(section, "FacialHairMale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded FacialHairMale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kFacialHair].maleEnabled);
@@ -209,7 +219,7 @@ void Settings::Load()
 
 		if (ini.KeyExists(section, "FacialHairFemale")) {
 			_enabledTypes[RE::BGSHeadPart::HeadPartType::kFacialHair].femaleEnabled =
-				ini.GetBoolValue(section, "FacialHairFemale", false, &foundValue);
+				ini.GetBoolValue(section, "FacialHairFemale", true, &foundValue);
 			if constexpr (INI_DEBUG_LOGGING) {
 				if (foundValue) {
 					logger::info("  Loaded FacialHairFemale={}", _enabledTypes[RE::BGSHeadPart::HeadPartType::kFacialHair].femaleEnabled);
@@ -241,16 +251,16 @@ void Settings::Load()
 			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kHair] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyHair", false, &foundValue);
 		}
 		if (ini.KeyExists(showOnlySec, "ShowOnlyUnisexyEyes")) {
-			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kEyes] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyEyes", false, &foundValue);
+			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kEyes] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyEyes", true, &foundValue);
 		}
 		if (ini.KeyExists(showOnlySec, "ShowOnlyUnisexyScars")) {
-			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kScar] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyScars", false, &foundValue);
+			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kScar] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyScars", true, &foundValue);
 		}
 		if (ini.KeyExists(showOnlySec, "ShowOnlyUnisexyBrows")) {
-			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kEyebrows] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyBrows", false, &foundValue);
+			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kEyebrows] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyBrows", true, &foundValue);
 		}
 		if (ini.KeyExists(showOnlySec, "ShowOnlyUnisexyFacialHair")) {
-			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kFacialHair] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyFacialHair", false, &foundValue);
+			_showOnlyUnisexyTypes[RE::BGSHeadPart::HeadPartType::kFacialHair] = ini.GetBoolValue(showOnlySec, "ShowOnlyUnisexyFacialHair", true, &foundValue);
 		}
 
 		if constexpr (INI_DEBUG_LOGGING) {
@@ -293,13 +303,18 @@ void Settings::SaveConfigFile(CSimpleIniA& ini, const std::string& iniPath)
 	// Add header comments to explain the configuration
 	ini.SetValue("", nullptr, nullptr,
 		"; Unisexy.ini - Configuration for Unisexy SKSE mod\n"
-		"; This mod creates gender-flipped versions of head parts (hair, facial hair, scars, eyebrows).\n"
-		"; Set each option to true/false to enable/disable creating gender-flipped versions.");
+		"; This mod creates gender-flipped versions of head parts (hair, eyes, scars, eyebrows, facial hair).\n"
+		"; Set each option to true/false to enable/disable creating gender-flipped versions.\n"
+		";\n"
+		"; Changes take effect on the next game start. Delete this file to restore the defaults.\n"
+		"; New parts are named <OriginalEditorID>_Unisexy and appear in the RaceMenu lists\n"
+		"; next to the originals.");
 
 	// HeadPartTypes section - organize by conversion direction
 	ini.SetValue("HeadPartTypes", "HairMale",
 		_enabledTypes[RE::BGSHeadPart::HeadPartType::kHair].maleEnabled ? "true" : "false",
-		"; Enable converting female parts to male versions");
+		"\n; Enable converting female parts to male versions\n"
+		"; (a female-only hair becomes selectable on male characters)");
 	ini.SetValue("HeadPartTypes", "ScarsMale",
 		_enabledTypes[RE::BGSHeadPart::HeadPartType::kScar].maleEnabled ? "true" : "false");
 	ini.SetValue("HeadPartTypes", "EyesMale",
@@ -311,7 +326,8 @@ void Settings::SaveConfigFile(CSimpleIniA& ini, const std::string& iniPath)
 
 	ini.SetValue("HeadPartTypes", "HairFemale",
 		_enabledTypes[RE::BGSHeadPart::HeadPartType::kHair].femaleEnabled ? "true" : "false",
-		"; Enable converting male parts to female versions");
+		"\n; Enable converting male parts to female versions\n"
+		"; (a male-only beard or hair becomes selectable on female characters)");
 	ini.SetValue("HeadPartTypes", "ScarsFemale",
 		_enabledTypes[RE::BGSHeadPart::HeadPartType::kScar].femaleEnabled ? "true" : "false");
 	ini.SetValue("HeadPartTypes", "EyesFemale",
@@ -323,14 +339,25 @@ void Settings::SaveConfigFile(CSimpleIniA& ini, const std::string& iniPath)
 
 	// Debug section
 	ini.SetValue("Debug", "VerboseLogging", _verboseLogging ? "true" : "false",
-		"; Enable detailed logging for debugging");
+		"\n; Enable detailed logging for debugging\n"
+		"; Writes every created part to Unisexy.log - slows startup, leave off unless troubleshooting");
 	ini.SetValue("Debug", "ShowOnlyUnisexy", _showOnlyUnisexy ? "true" : "false",
-		"; Hide vanilla head parts, showing only Unisexy-created versions");
+		"\n; Master switch: hide the original head parts and show only the Unisexy versions.\n"
+		"; Applies to ALL categories and overrides everything in the [ShowOnlyUnisexy] section below.\n"
+		"; An original is only hidden after its Unisexy copy was created successfully, so categories\n"
+		"; turned off in [HeadPartTypes] are left alone and nothing can go missing.");
 
 	// ShowOnlyUnisexy section
 	ini.SetValue("ShowOnlyUnisexy", "ShowOnlyUnisexyHair",
 		IsShowOnlyUnisexy(RE::BGSHeadPart::HeadPartType::kHair) ? "true" : "false",
-		"; Hide original head parts per category");
+		"\n; Hide the original head parts one category at a time.\n"
+		"; Ignored when Debug/ShowOnlyUnisexy above is set to true.\n"
+		";\n"
+		"; These only work where the matching conversion in [HeadPartTypes] is enabled:\n"
+		";   a female-only part is hidden only when <Category>Male = true\n"
+		";   a male-only part is hidden only when <Category>Female = true\n"
+		"; So set BOTH directions to true to hide a category's originals completely.\n"
+		"; With the conversion off, the setting below does nothing at all.");
 	ini.SetValue("ShowOnlyUnisexy", "ShowOnlyUnisexyEyes",
 		IsShowOnlyUnisexy(RE::BGSHeadPart::HeadPartType::kEyes) ? "true" : "false");
 	ini.SetValue("ShowOnlyUnisexy", "ShowOnlyUnisexyScars",

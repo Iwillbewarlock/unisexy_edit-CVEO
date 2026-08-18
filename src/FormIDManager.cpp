@@ -4,19 +4,28 @@
 namespace
 {
 	// Constants for FormID generation and conflict handling
-	constexpr std::uint32_t FORMID_MIN = 0x800;        // Minimum valid FormID
 	constexpr std::uint32_t MAX_FORMID_ATTEMPTS = 10;  // Maximum attempts to resolve FormID conflicts
 
 	// ESL (Light Plugin) constants
 	constexpr std::uint32_t ESL_FLAG = 0xFE000000;        // FormID flag for ESL plugins
+	constexpr std::uint32_t ESL_LOW_START = 0x001;        // Lowest usable ESL FormID (0x000 is not a valid form)
 	constexpr std::uint32_t ESL_HIGH_START = 0xFFF;       // Starting FormID for ESL (counts down)
 	constexpr std::uint32_t ESL_INDEX_MASK = 0x00FFF000;  // Mask for ESL index (bits 12-23)
 	constexpr std::uint32_t ESL_INDEX_SHIFT = 12;         // Bit shift for ESL index
 
 	// ESP/ESM (Full Plugin) constants
+	constexpr std::uint32_t ESP_LOW_START = 0x800;        // Lowest usable ESP/ESM FormID
 	constexpr std::uint32_t ESP_HIGH_START = 0xFFFFFF;    // Starting FormID for ESP/ESM (counts down)
 	constexpr std::uint32_t ESP_INDEX_MASK = 0xFF000000;  // Mask for ESP/ESM index (bits 24-31)
 	constexpr std::uint32_t ESP_INDEX_SHIFT = 24;         // Bit shift for ESP/ESM index
+
+	// Light plugins only get a 12-bit FormID space, so the low half matters.
+	// Skyrim 1.6.1130+ accepts the full 0x000..0xFFF ESL range; restricting it to 0x800
+	// halved the pool and caused exhaustion on large ESL mods (KS Hairdo's, CVEO addons).
+	constexpr std::uint32_t GetFormIDMin(bool isLight)
+	{
+		return isLight ? ESL_LOW_START : ESP_LOW_START;
+	}
 
 	// Generate a deterministic FormID based on EditorID
 	std::uint32_t GenerateBaseFormID(const std::string& editorID, bool isLight)
@@ -24,7 +33,7 @@ namespace
 		std::hash<std::string> hasher;
 		size_t hash = hasher(editorID);
 		std::uint32_t maxFormID = isLight ? ESL_HIGH_START : ESP_HIGH_START;
-		std::uint32_t range = maxFormID - FORMID_MIN + 1;
+		std::uint32_t range = maxFormID - GetFormIDMin(isLight) + 1;
 		return maxFormID - (static_cast<std::uint32_t>(hash % range));
 	}
 }
@@ -47,6 +56,7 @@ bool FormIDManager::AssignFormID(RE::TESForm* form, const RE::TESFile* targetFil
 
 	// Initialize plugin properties and tracking
 	const bool isLight = targetFile->IsLight();
+	const std::uint32_t formIDMin = GetFormIDMin(isLight);
 	const bool verboseLogging = Settings::GetSingleton()->IsVerboseLogging();
 	auto& assignedIDs = assignedFormIDs_[targetFile];
 
@@ -63,7 +73,7 @@ bool FormIDManager::AssignFormID(RE::TESForm* form, const RE::TESFile* targetFil
 	// Attempt to assign a unique FormID
 	while (attemptCount < MAX_FORMID_ATTEMPTS) {
 		// Ensure FormID is within valid range
-		if (counter < FORMID_MIN) {
+		if (counter < formIDMin) {
 			if (isLight) {
 				logger::error("Exhausted ESL FormID range for plugin: {}", targetFile->GetFilename());
 			} else {
@@ -132,7 +142,7 @@ bool FormIDManager::AssignFormID(RE::TESForm* form, const RE::TESFile* targetFil
 	if (verboseLogging) {
 		logger::warn("Hash-derived attempts exhausted for '{}', continuing decrement from {:04X}", editorID, counter);
 	}
-	while (counter >= FORMID_MIN) {
+	while (counter >= formIDMin) {
 		if (isLight) {
 			newFormID = ESL_FLAG |
 			            ((static_cast<std::uint32_t>(targetFile->smallFileCompileIndex) << ESL_INDEX_SHIFT) | counter);
@@ -153,7 +163,7 @@ bool FormIDManager::AssignFormID(RE::TESForm* form, const RE::TESFile* targetFil
 			}
 		}
 
-		if (counter == FORMID_MIN)
+		if (counter == formIDMin)
 			break;
 		counter--;
 	}
@@ -185,6 +195,6 @@ bool FormIDManager::AssignFormID(RE::TESForm* form, const RE::TESFile* targetFil
 	}
 
 	logger::error("Failed to assign FormID for '{}' in plugin '{}' — no available FormIDs remain in range [{:04X}..{:04X}]",
-		editorID, targetFile->GetFilename(), FORMID_MIN, maxFormID);
+		editorID, targetFile->GetFilename(), formIDMin, maxFormID);
 	return false;
 }

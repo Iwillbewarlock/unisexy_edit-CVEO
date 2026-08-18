@@ -24,7 +24,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	v.AuthorName("Fuzzles");
 	v.UsesAddressLibrary();
 	v.UsesNoStructs();
-	v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST });
+	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
 	return v;
 }();
 #else
