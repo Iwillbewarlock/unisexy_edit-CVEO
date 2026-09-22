@@ -1,0 +1,101 @@
+# CI for the Unisexy SKSE plugin.
+#
+# Enforces AGENTS.md rules R-3.1 (every change must compile for SE and AE)
+# and R-7.2 (every source file must be registered in cmake/*list.cmake).
+#
+# The runner is pinned to windows-2022 because CMakePresets.json pins the
+# "Visual Studio 17 2022" generator and the v143 toolset; windows-latest may
+# move to a newer Visual Studio and break configure (see AGENTS.md 2절).
+
+name: build
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-lists:
+    name: source lists match src/
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare src/*.cpp and src/*.h against cmake/*list.cmake
+        shell: bash
+        run: |
+          set -euo pipefail
+          extract() { grep -oE 'src/[A-Za-z0-9_./-]+' "$1" | sort; }
+          diff <(ls src/*.cpp | sort) <(extract cmake/sourcelist.cmake) \
+            || { echo "::error::src/*.cpp does not match cmake/sourcelist.cmake (R-7.2)"; exit 1; }
+          diff <(ls src/*.h | sort) <(extract cmake/headerlist.cmake) \
+            || { echo "::error::src/*.h does not match cmake/headerlist.cmake (R-7.2)"; exit 1; }
+          echo "source lists match"
+
+  build:
+    name: ${{ matrix.target }} Release
+    runs-on: windows-2022
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: se
+            dir: build
+          - target: ae
+            dir: buildae
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-cache
+      VCPKG_BINARY_SOURCES: clear;default,readwrite
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare vcpkg
+        shell: pwsh
+        run: |
+          $root = $env:VCPKG_INSTALLATION_ROOT
+          if (-not $root) { throw "VCPKG_INSTALLATION_ROOT is not set on this runner" }
+          if ((git -C $root rev-parse --is-shallow-repository) -eq 'true') {
+            git -C $root fetch --unshallow
+          }
+          git -C $root fetch origin
+          $baseline = (Get-Content vcpkg.json | ConvertFrom-Json).'builtin-baseline'
+          git -C $root cat-file -e "$baseline^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg baseline $baseline is not present in $root" }
+          & "$root\bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+          "VCPKG_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Append
+          cmake --version
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'cmake/ports/**') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
+      - name: Configure (${{ matrix.target }})
+        run: cmake --preset vs2022-windows-vcpkg-${{ matrix.target }}
+
+      - name: Build (${{ matrix.target }})
+        run: cmake --build --preset vs2022-windows-vcpkg-${{ matrix.target }}
+
+      - name: Upload plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unisexy-${{ matrix.target }}
+          path: |
+            ${{ matrix.dir }}/Release/Unisexy.dll
+            ${{ matrix.dir }}/Release/Unisexy.pdb
+          if-no-files-found: error
