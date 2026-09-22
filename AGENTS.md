@@ -94,7 +94,7 @@
 | R-7.1 산출물 커밋 금지 | `.gitignore` | 있음 |
 | R-7.1 로그·백업 커밋 금지 | PreToolUse 훅 또는 CI 검사 | 없음 |
 | R-7.2 CMake 소스 목록 반영 | 같은 워크플로의 `source-lists` 작업 | **있음** (2026-09-22) |
-| R-7.3 설정 기본값 3중 일치 | CI에서 코드 기본값·폴백 인자·ini 템플릿 파싱 후 대조 | 없음 — **다음 차례** (2026-08-18 사고 이력) |
+| R-7.3 설정 기본값 3중 일치 | `scripts/check_ini_defaults.py`, 워크플로의 `ini-defaults` 작업 | **있음** (2026-09-22) |
 | R-4.1 `main` 직접 푸시 금지 | 브랜치 보호 규칙 | 미확인 |
 | R-4.2 `extern/` 수정 금지 | PreToolUse 훅으로 경로 차단 | 없음 |
 | R-1.5 코드 스타일 | `clang-format --dry-run --Werror` in CI | 없음 |
@@ -217,7 +217,8 @@ ShowOnlyUnisexyBrows / ShowOnlyUnisexyFacialHair
 - `[ShowOnlyUnisexy]` — **머리카락만 `false`, 나머지 넷은 `true`**
 - `[Debug]` — 둘 다 `false`
 
-기본값은 **세 군데가 항상 일치해야 한다.** 하나라도 어긋나면 "설정한 대로 안 된다"는 증상이 나온다:
+기본값은 **세 군데가 항상 일치해야 한다.** 하나라도 어긋나면 "설정한 대로 안 된다"는 증상이 나온다.
+`scripts/check_ini_defaults.py`가 셋을 대조하며 CI의 `ini-defaults` 작업이 매 푸시마다 돌린다. 로컬에서도 `python3 scripts/check_ini_defaults.py`로 바로 확인할 수 있다:
 
 1. `Settings::Load()` 상단의 `_enabledTypes` / `_showOnlyUnisexyTypes` 하드코딩 초기값
 2. 각 `ini.GetBoolValue(..., <기본값>, ...)`의 폴백 인자

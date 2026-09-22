@@ -1,7 +1,8 @@
 # CI for the Unisexy SKSE plugin.
 #
-# Enforces AGENTS.md rules R-3.1 (every change must compile for SE and AE)
-# and R-7.2 (every source file must be registered in cmake/*list.cmake).
+# Enforces AGENTS.md rules R-3.1 (every change must compile for SE and AE),
+# R-7.2 (every source file must be registered in cmake/*list.cmake) and
+# R-7.3 (settings defaults agree across all three places that declare them).
 #
 # The runner is pinned to windows-2022 because CMakePresets.json pins the
 # "Visual Studio 17 2022" generator and the v143 toolset; windows-latest may
@@ -40,6 +41,16 @@ jobs:
           diff <(ls src/*.h | sort) <(extract cmake/headerlist.cmake) \
             || { echo "::error::src/*.h does not match cmake/headerlist.cmake (R-7.2)"; exit 1; }
           echo "source lists match"
+
+  ini-defaults:
+    name: settings defaults agree
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare hardcoded defaults, GetBoolValue fallbacks and ini templates
+        run: python3 scripts/check_ini_defaults.py
 
   build:
     name: ${{ matrix.target }} Release
