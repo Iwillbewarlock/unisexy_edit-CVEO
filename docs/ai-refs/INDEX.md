@@ -16,7 +16,7 @@
 | 2 | [Qkoa/alpha-ticket](#2-qkoaalpha-ticket) | Codex 스킬 (개발 워크플로 규약, 한국어) | **A** (패턴) | 검토 완료 |
 | 3 | [ginishuh/contextforge](#3-ginishuhcontextforge) | 에이전트 메모리·증류 런타임 (Node/SQLite/MCP) | **A** (문서) / B (도구) | 검토 완료 |
 | 4 | [claude-code-setup](#4-claude-code-setupclaude-plugins-official) | Claude Code 공식 플러그인 (읽기 전용 자문 스킬) | B (본체) / **A** (레퍼런스) | 검토 완료 |
-| 5 | [ui-ux-pro-max-skill](#5-nextlevelbuilderui-ux-pro-max-skill) | 디자인 검색 스킬 (웹·모바일·데스크톱 UI) | B (도구) / **A** (지침 패턴) | 검토 완료 |
+| 5 | [ui-ux-pro-max-skill](#5-nextlevelbuilderui-ux-pro-max-skill) | 디자인 검색 스킬 (웹·모바일·데스크톱 UI) | C (도구) / **A** (지침 패턴) | 검토 완료 |
 
 ---
 
@@ -294,7 +294,7 @@ MCP `bootstrap_context`/`search`가 기본 `compact` 모드에 **6,000자 예산
 | 스택 | Python 3 표준 라이브러리만. 데이터 약 564KB |
 | 라이선스 | MIT |
 | 활성도 | **별 약 130k, 포크 13.8k, 커밋 263, 기여자 15명 이상, 최종 2026-09-21.** CI 워크플로 6개, pytest 153개, 스택 스모크 22/22. **지금까지 자료 중 유일하게 다수 기여자·실제 이슈 처리가 있음** |
-| 등급 | **B (도구, 웹·데스크톱 UI 한정) / A (지침 패턴)** |
+| 등급 | **C (도구) / A (지침 패턴)** — 도구 등급은 사용자 후기 반영으로 B에서 하향 |
 
 ### 대상 UI 기술 — 인게임 UI는 없다
 
@@ -356,6 +356,7 @@ SKILL.md(16KB)가 앞의 자료들보다 실전 규칙이 촘촘하다. 새로 �
 
 ### 주의점
 
+- **사용자 후기가 좋지 않다** (2026-09-22 확인). 아래 내용 품질 문제와 일치한다. 도구로는 기대하지 말고 SKILL.md 패턴만 가져올 것
 - **디자인 내용 자체는 얕고 일반적이다.** CSV가 "Trust blue + Accent contrast" 수준의 통용 상식이고, 추론 행 92~116번은 `Decision_Rules`가 동일한 근사 중복. `Reasoning`/`Confidence` 열은 전부 비어 있음. 이슈 #446 "웹 디자인을 개선하는 게 아니라 망친다"는 사용자 보고도 있음
 - **마케팅 깔때기.** README에 후원 버튼, 자매 프로젝트 4개, "Basic vs Premium" 업셀(유료판 = 브랜드·로고·슬라이드·AI 이미지)
 - 에이전트 프롬프트 안에 **중국어·영어 혼재** (quick-reference "When to Apply" 절, 아이콘 규칙 문단, 트리거 예시)
