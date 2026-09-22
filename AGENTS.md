@@ -84,11 +84,11 @@
 
 | 규칙 | 강제 수단 | 상태 |
 |---|---|---|
-| R-3.1 컴파일 검증 | GitHub Actions `windows-latest` + vcpkg, SE/AE 프리셋 빌드 | **없음** — 최우선 |
+| R-3.1 컴파일 검증 | GitHub Actions `.github/workflows/build.yml`, `windows-2022` + vcpkg, SE/AE Release 빌드 | **있음** (2026-09-22) |
 | R-7.1 산출물 커밋 금지 | `.gitignore` | 있음 |
 | R-7.1 로그·백업 커밋 금지 | PreToolUse 훅 또는 CI 검사 | 없음 |
-| R-7.2 CMake 소스 목록 반영 | CI에서 `src/*.cpp` 목록과 `sourcelist.cmake` 대조 | 없음 |
-| R-7.3 설정 기본값 3중 일치 | CI에서 코드 기본값·폴백 인자·ini 템플릿 파싱 후 대조 | 없음 |
+| R-7.2 CMake 소스 목록 반영 | 같은 워크플로의 `source-lists` 작업 | **있음** (2026-09-22) |
+| R-7.3 설정 기본값 3중 일치 | CI에서 코드 기본값·폴백 인자·ini 템플릿 파싱 후 대조 | 없음 — **다음 차례** (2026-08-18 사고 이력) |
 | R-4.1 `main` 직접 푸시 금지 | 브랜치 보호 규칙 | 미확인 |
 | R-4.2 `extern/` 수정 금지 | PreToolUse 훅으로 경로 차단 | 없음 |
 | R-1.5 코드 스타일 | `clang-format --dry-run --Werror` in CI | 없음 |
@@ -133,6 +133,10 @@ cmake --build buildae --config Release
 ```
 
 산출물: `build/Release/Unisexy.dll` → `Data/SKSE/Plugins/`에 배치.
+
+푸시하면 `.github/workflows/build.yml`이 SE/AE Release를 자동 빌드하고 `Unisexy-se` /
+`Unisexy-ae` 아티팩트로 DLL·PDB를 올린다. **로컬 빌드가 불가능한 환경에서는 CI 결과가
+R-3.1의 유일한 근거다.** 실패 시 7절 표를 먼저 볼 것.
 
 ### VS2022가 없는 환경
 
