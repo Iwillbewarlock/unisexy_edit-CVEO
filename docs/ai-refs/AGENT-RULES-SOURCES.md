@@ -12,6 +12,7 @@
 |---|---|
 | R-1.1, R-1.5 | 현행 `AGENTS.md` 0장 |
 | R-1.2~1.4 | contextforge 한국어 응대 원칙 |
+| R-1.6 | 사용자 요청 (2026-09-22). 비개발자 대상 설명 규칙 |
 | R-2.1, R-2.2, R-2.5 | 수렴(증거 규율). WebGPT "completion claim alone is not evidence", ui-ux "never present a 0-result search as if it returned data" |
 | R-2.3 | 현행 `AGENTS.md` 0장 + 8장 디버깅 노트 |
 | R-3 표 | alpha-ticket Fast/Core/Strict를 모딩판으로 번역 |
