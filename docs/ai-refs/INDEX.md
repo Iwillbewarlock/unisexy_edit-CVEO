@@ -15,6 +15,7 @@
 | 1 | [Nhahan/WebGPT](#1-nhahanwebgpt) | Codex 스킬 (ChatGPT 웹 위임) | **A** (문서만) | 검토 완료 |
 | 2 | [Qkoa/alpha-ticket](#2-qkoaalpha-ticket) | Codex 스킬 (개발 워크플로 규약, 한국어) | **A** (패턴) | 검토 완료 |
 | 3 | [ginishuh/contextforge](#3-ginishuhcontextforge) | 에이전트 메모리·증류 런타임 (Node/SQLite/MCP) | **A** (문서) / B (도구) | 검토 완료 |
+| 4 | [claude-code-setup](#4-claude-code-setupclaude-plugins-official) | Claude Code 공식 플러그인 (읽기 전용 자문 스킬) | B (본체) / **A** (레퍼런스) | 검토 완료 |
 
 ---
 
@@ -218,6 +219,69 @@ MCP `bootstrap_context`/`search`가 기본 `compact` 모드에 **6,000자 예산
 
 ---
 
+## 4. claude-code-setup@claude-plugins-official
+
+<https://github.com/anthropics/claude-plugins-official> → `plugins/claude-code-setup`
+
+| 항목 | 내용 |
+|------|------|
+| 정체 | 코드베이스를 분석해 hooks/skills/MCP/subagent를 추천하는 **읽기 전용 자문 스킬 1개.** 설치기가 아님 |
+| 구성 | 스킬 `claude-automation-recommender` **단 하나.** commands·agents·hooks·MCP 서버 전부 없음 |
+| 권한 | `Read, Glob, Grep, Bash` — **Write/Edit 없음.** `settings.json`·`CLAUDE.md`·훅을 건드리지 않는다 |
+| 출처 | **Anthropic 관리, Apache-2.0, 별 약 36.6k.** 마켓플레이스에 플러그인 310개 |
+| 등급 | **B (본체) / A (동봉 레퍼런스 + 형제 플러그인)** |
+
+### 앞의 셋과 결정적으로 다른 점
+
+1~3번은 전부 **별 3~43개짜리 1인 미검증 프로젝트**였다. 이건 처음으로 **검증된 1차 출처**다. 지금까지 수집한 패턴이 공식 자료와 어긋나는지 대조하는 기준선으로 쓸 수 있다.
+
+### 동작
+
+3단계: 코드베이스 분석 → 5개 범주(MCP 서버 / 스킬 / 훅 / 서브에이전트 / 플러그인) 추천 → 마크다운 보고서 출력. 범주당 1~2개로 제한하고, 사용자가 특정 범주를 지목하면 3~5개.
+
+### 우리 프로젝트에는 잘 안 맞는다
+
+탐지기가 **웹·앱 스택 전용**이다. `package.json` / `pyproject.toml` / `Cargo.toml` / `go.mod` / `pom.xml`을 찾고, 의존성에서 react·vue·next·express·fastapi·django·prisma·supabase·stripe를 본다. 디렉터리도 `src/ app/ lib/ tests/ components/ pages/ api/`를 뒤진다.
+
+**CMake + vcpkg C++ SKSE 플러그인은 이 중 어느 것도 걸리지 않는다.** 추천 카탈로그(Playwright, Supabase, Convex, Stripe, Linear MCP…)도 마찬가지다. 돌려보면 일반론만 나올 가능성이 크다.
+
+다만 **읽기 전용이고 Anthropic 관리**라 한 번 돌려보는 비용은 사실상 0이다.
+
+### 진짜 수확 (1) — 동봉 레퍼런스 5종
+
+`skills/claude-automation-recommender/references/` 아래:
+
+| 파일 | 내용 |
+|------|------|
+| `hooks-patterns.md` | PostToolUse 자동 포맷·린트·타입체크·테스트, PreToolUse로 `.env` 편집 차단·lock 파일 차단·민감 코드 확인 요구 |
+| `subagent-templates.md` | `code-reviewer`, `security-reviewer`, `api-documenter`, `performance-analyzer`, `ui-reviewer`, `test-writer` |
+| `skills-reference.md` | 직접 만들 스킬 예시 (`pr-check`, `project-conventions`, `gen-test`, `release-notes` 등) |
+| `mcp-servers.md` / `plugins-reference.md` | 추천 카탈로그 |
+
+**우리가 모으는 자료와 정확히 같은 종류인데 출처가 공식이다.** 특히 `hooks-patterns.md`는 3자료 수렴 패턴 중 "기계가 지침을 강제"에 해당하는 공식판 목록이다.
+
+### 진짜 수확 (2) — 형제 플러그인이 본체보다 유용하다
+
+같은 마켓플레이스(310개)를 전부 받아 훑은 결과:
+
+| 플러그인 | 왜 |
+|---|---|
+| **`clangd-lsp`** | C/C++ 언어 서버. **이 프로젝트에 즉시 실용적.** CommonLibSSE 헤더 전반에 코드 인텔리전스가 생긴다 |
+| **`claude-md-management`** | "CLAUDE.md 품질 감사, 세션 학습 포착, 프로젝트 메모리 최신 유지". **지금 목표에 정면으로 맞는다** |
+| **`hookify`** | 훅 작성. 수렴 패턴 "기계 강제"의 실행 수단 |
+| `skill-creator`, `plugin-dev` | 우리 규약을 스킬로 만들 때 |
+| `code-review`, `code-simplifier`, `claude-security` | 범용 |
+
+**Skyrim/SKSE/CMake/MSVC 전용 플러그인은 310개 중 없다.** 게임 쪽은 `unity`, `unreal-engine-skills-for-claude-code`뿐이고 엔진이 다르다. C++ 관련은 `clangd-lsp`, `qt-development-skills`(Qt 전용), `code-modernization`(레거시 C++ 언급) 정도.
+
+### 주의점
+
+- 본체는 **추천만 하고 구현하지 않는다.** 구현은 어차피 이 세션에서 하게 된다
+- `Bash` 권한이 있어 분석 중 읽기 전용 셸 명령(`ls`, `cat`, `grep`)을 실행한다
+- 마켓플레이스 310개 중 대다수가 서드파티 벤더 플러그인이다. Anthropic 내부 플러그인은 37개, 벤더링된 외부 플러그인은 14개
+
+---
+
 ## 패턴 수렴
 
 세 자료는 서로 무관한 프로젝트인데 독립적으로 같은 결론에 도달한 항목이 있다. **수렴한 패턴일수록 우리 규약에 넣을 후보로서 근거가 강하다** (자료 각각은 전부 미검증 1인 프로젝트이므로 개별 권위는 낮음).
@@ -258,7 +322,7 @@ MCP `bootstrap_context`/`search`가 기본 `compact` 모드에 **6,000자 예산
 
 인덱스 작업 중 확인된 사항 (자료와 별개로 기록).
 
-1. **`AGENTS.md`가 Claude 세션에서 자동 로드되지 않음.** 이번 세션에서 컨텍스트에 주입되지 않아 직접 열어야 했다. `CLAUDE.md`도 `.claude/` 디렉터리도 없음. 공들여 쓴 15KB 문서가 놀고 있을 가능성이 큼
+1. **~~`AGENTS.md`가 자동 로드되지 않음~~ — 정정: 자동 로드된다.** 세션 초반에 주입되지 않아 직접 열어야 했고 그래서 로드 안 된다고 적었으나, 이후 턴에서 프로젝트 지침으로 컨텍스트에 들어왔다. 지연 주입이었을 뿐이다. **`CLAUDE.md` 심볼릭 링크는 불필요하다.**
 
 2. **지식 문서와 행동 규약이 한 파일에 혼재.** `AGENTS.md`는 "이 프로젝트는 이렇게 생겼다"(지식)인데, 7장 "빌드 실패 시 참고 (과거 사례)"는 경계에 걸쳐 있음 — 사례 나열이지 규칙이 아니라 같은 실수 반복 여지가 있고, 빌드가 안 깨졌을 때도 매번 전부 로드됨. WebGPT 패턴 (1)이 정확히 이걸 푸는 기법
 
