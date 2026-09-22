@@ -91,13 +91,13 @@
 | 규칙 | 강제 수단 | 상태 |
 |---|---|---|
 | R-3.1 컴파일 검증 | GitHub Actions `.github/workflows/build.yml`, `windows-2022` + vcpkg, SE/AE Release 빌드 | **있음** (2026-09-22) |
-| R-7.1 산출물 커밋 금지 | `.gitignore` | 있음 |
-| R-7.1 로그·백업 커밋 금지 | PreToolUse 훅 또는 CI 검사 | 없음 |
+| R-7.1 산출물 커밋 금지 | `.gitignore` + `scripts/check_hygiene.py` | 있음 |
+| R-7.1 로그·백업 커밋 금지 | `scripts/check_hygiene.py`, 워크플로의 `hygiene` 작업 | **있음** (2026-09-22) |
 | R-7.2 CMake 소스 목록 반영 | 같은 워크플로의 `source-lists` 작업 | **있음** (2026-09-22) |
 | R-7.3 설정 기본값 3중 일치 | `scripts/check_ini_defaults.py`, 워크플로의 `ini-defaults` 작업 | **있음** (2026-09-22) |
 | R-4.1 `main` 직접 푸시 금지 | 브랜치 보호 규칙 | 미확인 |
-| R-4.2 `extern/` 수정 금지 | PreToolUse 훅으로 경로 차단 | 없음 |
-| R-1.5 코드 스타일 | `clang-format --dry-run --Werror` in CI | 없음 |
+| R-4.2 `extern/` 수정 금지 | PreToolUse 훅으로 경로 차단 | 없음 — **다음 차례** |
+| R-1.5 코드 스타일 | `clang-format --dry-run --Werror`, 같은 `hygiene` 작업 | **있음** (2026-09-22) |
 | 파일 비대화 | 라인 예산 래칫 (파일별 상한, 축소 시 예산 조임) | 없음 — 소스 11개라 지금은 불필요 |
 
 ## 1. 프로젝트 개요

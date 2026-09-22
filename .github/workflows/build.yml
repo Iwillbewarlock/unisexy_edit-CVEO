@@ -2,7 +2,9 @@
 #
 # Enforces AGENTS.md rules R-3.1 (every change must compile for SE and AE),
 # R-7.2 (every source file must be registered in cmake/*list.cmake) and
-# R-7.3 (settings defaults agree across all three places that declare them).
+# R-7.3 (settings defaults agree across all three places that declare them),
+# R-7.1 (no build output, logs, backups or secrets tracked) and R-1.5
+# (sources match .clang-format).
 #
 # The runner is pinned to windows-2022 because CMakePresets.json pins the
 # "Visual Studio 17 2022" generator and the v143 toolset; windows-latest may
@@ -51,6 +53,21 @@ jobs:
 
       - name: Compare hardcoded defaults, GetBoolValue fallbacks and ini templates
         run: python3 scripts/check_ini_defaults.py
+
+  hygiene:
+    name: no forbidden files, sources formatted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check nothing forbidden is tracked
+        run: python3 scripts/check_hygiene.py
+
+      - name: Check sources match .clang-format
+        run: |
+          clang-format --version
+          clang-format --dry-run --Werror src/*.cpp src/*.h
 
   build:
     name: ${{ matrix.target }} Release
