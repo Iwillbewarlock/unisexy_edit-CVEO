@@ -250,3 +250,10 @@ KS Hairdo's, CVEO 눈 애드온 같은 대형 ESL에서 슬롯이 고갈돼 파�
   가장 빠른 판정 수단이다.
 - 어떤 소스로 빌드된 DLL인지 확인해야 할 때는 바이너리에서 특징적인 로그 문자열을 찾으면 된다
   (예: `no available FormIDs remain`은 `eef0f2e` 이후에만 존재). 해시 비교와 병행하면 확실하다.
+
+## 9. `ActionMagic/` (별개 프로젝트)
+
+저장소 루트의 `ActionMagic/`은 Unisexy와 **무관한 별도 SKSE 플러그인**이다 (마법 액션화 실험, 0.1.0).
+루트 `CMakeLists.txt`는 이 디렉터리를 참조하지 않으며, 빌드도 `ActionMagic/` 안에서 따로 한다.
+CommonLibSSE는 루트의 `extern/CommonLibSSE` 서브모듈을 공유한다. 의존성은 clib-util 대신 vcpkg `simpleini`를 쓴다.
+설계와 단계 계획은 `ActionMagic/DESIGN.md`, 빌드·설정은 `ActionMagic/README.md` 참조.

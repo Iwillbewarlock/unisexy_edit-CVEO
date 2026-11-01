@@ -1,0 +1,8 @@
+build*/
+/.vs
+CMakeUserPresets.json
+vcpkg_installed/
+out/
+*.dll
+*.lib
+*.pdb

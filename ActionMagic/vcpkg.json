@@ -1,0 +1,12 @@
+{
+  "name": "actionmagic",
+  "version-string": "0.1.0",
+  "description": "Action-oriented spell handling for Skyrim SE/AE",
+  "license": "MIT",
+  "dependencies": [
+    "rsm-binary-io",
+    "simpleini",
+    "spdlog"
+  ],
+  "builtin-baseline": "f4ea42fa5c2b993cf2b75725331616999e2e34d1"
+}
