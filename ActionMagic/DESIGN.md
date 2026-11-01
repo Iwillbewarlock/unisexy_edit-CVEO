@@ -61,3 +61,22 @@
 - 왼쪽 Shift는 바닐라 걷기/달리기 키라서 순환하는 동안 이동 속도가 바뀔 수 있다.
 - 지팡이를 들고 있으면 순환하지 않는다 (2단계 전까지). 알림만 표시한다.
 - 즐겨찾기 순서는 게임의 즐겨찾기 배열 순서를 따른다.
+
+## 유사 모드 조사 (2026-11-01, Nexus API로 파일을 받아 확인)
+
+| 모드 | 방식 | 지팡이 손으로 주문 | 비용 | 대상 지팡이 | 비고 |
+|---|---|---|---|---|---|
+| Spellcasting Staff NG (SE 196207, v2.0.2, 2026-10-30) | SKSE DLL (CommonLibSSE-NG) + ESP | 마법 메뉴에서 지팡이 손에 주문을 장착하면 바인딩(메뉴 장착 호출 지점 훅). 지팡이 발사 애니메이션 이벤트에서 별도 캐스터(`kOther`)로 시전 | 마나 (Vigor 지팡이는 스태미나), 실패 시 환불 | 전용 지팡이 27종만 (키워드) | 집중형 지원, Spell Hotbar 2 호환, SKSE co-save. 액터 밸류 `Variable08` 사용. 쌍지팡이 미지원. 런타임 1.5.97 / 1.6.1170 / 1.7.104만 |
+| Elden Catalyst (SE 81566, v1.3.0, 2023) | DynamicAnimationCasting-NG 설정(toml) + ESP | `MRh/MLh_SpellFire_Event`에서 반대 손 주문 또는 첫 즐겨찾기 주문을 시전 | 지팡이는 비용 0으로 설정됨 | 키워드. KID로 아무 지팡이에나 부여 가능 | NPC 지원. 집중형 제외 |
+| SmartStaff (SE 84535) / Staff Casting SE (SE 22925) | Papyrus + ESP | 지팡이 손에 주문 장착 | 지팡이 충전량 | 전용 지팡이 | 집중형·바운드·의식 주문 불가. 모드 주문은 패치 필요 |
+| Polymorphic Staff (SE 121013) | Papyrus + ESP | 없음 (인챈트 저장·순환) | 충전량 | 전용 지팡이 | 인챈트 교체 후 **지팡이 재장착 필요** (`RequipStaff`) |
+| Vokriinator - Staff Dual Casting (SE 99957) | ESP 퍽 + Ordinator 스크립트 덮어쓰기 | 없음 | — | 오른손 지팡이 + 왼손 주문 | 왼손 주문을 이중시전처럼 처리. 효과별 수동 수정이라 예외 있음 |
+| Multi Spell Gimmick Staves (SE 154674) | Dynamic Magic Modification Framework | 없음 | 충전량(자연 회복) | 전용 지팡이 | 지팡이를 들면 반대 손 주문의 차지 시간·비용·위력 변경 |
+
+결론:
+
+- **지팡이 손으로 주문 쓰기(조율)는 Spellcasting Staff NG가 이미 깊게 구현했다.** 범위에서 제외하고 호환을 목표로 한다.
+  - 우리 `GetMagicNode` 훅은 왼손·오른손 캐스터에만 적용하고 `kOther` 캐스터는 건드리지 않는다.
+  - 액터 밸류 `Variable08`을 쓰지 않는다.
+- **발사 위치를 지팡이 끝으로 옮기는 모드는 없다.** 차별점.
+- **지팡이 인챈트를 주문 목록에 넣고 충전량으로 쓰는 모드도 없다.** 차별점. 단, Polymorphic Staff 사례로 보아 인챈트를 바꾸는 방식은 재장착이 필요하므로 쓰지 않는다.
